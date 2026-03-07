@@ -51,10 +51,26 @@ Execute these scans in order. **Adapt to the detected stack** — not all scans 
 
 ```
 list_dir on project root → identify all top-level directories
-Recursively list_dir on each source directory (max depth 3-4)
+Recursively list_dir on each source directory — GO DEEP (4-5 levels)
+For each source directory, also run find_by_name with file extensions
+  to get the COMPLETE file list
 ```
 
-**Goal:** Build a complete mental model of the directory tree.
+**Goal:** Build a complete mental model of the directory tree including EVERY source file.
+
+> ⚠️ **CRITICAL:** Do NOT stop at top-level directories. You must drill into
+> EVERY subdirectory until you reach individual source files. A directory tree
+> that only shows folders and a few files is INCOMPLETE and UNACCEPTABLE.
+> Use `find_by_name` with extension filters to ensure you capture every file.
+> For example, for frontend frameworks (Angular/React/Vue):
+> - List every `.ts`, `.tsx`, `.html`, `.css`, `.scss` file in every component directory
+> - List every service, hook, utility, and state management file
+>
+> For backend/systems code (C++, Python, Go, Java, Rust):
+> - C++: List every `.h` AND `.cpp` file, not just headers
+> - Python: List every `.py` file including `__init__.py` and utility modules
+> - Go: List every `.go` file in the package
+> - Config: List every `CMakeLists.txt`, `pom.xml`, or `Cargo.toml` in subdirectories
 
 ### 2.2 Entry Point Scan
 
@@ -173,7 +189,34 @@ Map the testing strategy:
 - Test utilities, fixtures, factories
 - Coverage configuration
 
-### 2.11 Symbol Index Scan (Code Index)
+### 2.11 Event & Message Broker Scan
+
+Identify event-driven components:
+- Event buses (Kafka, RabbitMQ, SQS, SNS, Redis Pub/Sub)
+- Topics, queues, and channels
+- Producers and Consumers (which components publish, which subscribe)
+- Event schema registries if applicable
+- WebSocket / Server-Sent Events (SSE) hubs
+
+### 2.12 Caching Scan
+
+Identify caching strategies:
+- Distributed caches (Redis, Memcached)
+- In-memory caches (Guava, LRU caches)
+- Web caches (CDN rules, Edge caching, Varnish)
+- Decorators or annotations (e.g., `@Cacheable`)
+- Invalidation logic triggers
+
+### 2.13 Observability Scan
+
+Identify telemetry and monitoring:
+- Logging frameworks (Log4j, Winston, Serilog, Zap)
+- Log formatters (JSON, text) and correlation IDs
+- Metrics exporters (Prometheus, Datadog StatsD, OpenTelemetry)
+- Distributed tracing setup
+- Health check endpoints (`/healthz`, `/metrics`)
+
+### 2.14 Symbol Index Scan (Code Index)
 
 This is the **most important scan for AI agent effectiveness**. For every source file in the project, extract the complete list of classes, functions, methods, and key constants.
 
@@ -247,6 +290,25 @@ Use these sections. **Skip sections that don't apply.** Order can vary based on 
 > project structure, all components, data models, build system, deployment,
 > and key design decisions.
 
+## Table of Contents
+
+A clickable navigation index listing every section and subsection in the
+document. Use markdown anchor links. Include all top-level `##` sections
+and nested `###` subsections indented as a sub-list.
+
+Example:
+- [1. Project Overview](#1-project-overview)
+- [2. Architecture Diagram](#2-architecture-diagram)
+- [4. Components — Detail](#4-components--detail)
+  - [4.1 Component A](#41-component-a)
+  - [4.2 Component B](#42-component-b)
+- ...
+
+> ⚠️ **MANDATORY:** Every generated architecture.md MUST include a Table
+> of Contents immediately after the purpose block. This enables fast
+> navigation in large documents. Update the TOC whenever sections are
+> added or removed.
+
 ---
 
 ## 1. Project Overview
@@ -261,15 +323,52 @@ Use these sections. **Skip sections that don't apply.** Order can vary based on 
 ## 2. Architecture Diagram
 
 Mermaid graph showing all components, their relationships, external
-dependencies, and data flow directions. Use subgraphs to group related
-components.
+dependencies, and data flow directions. 
+
+> ⚠️ Ensure the diagram includes message brokers (Kafka/RabbitMQ), 
+> caching layers (Redis), and 3rd-party integrations (Stripe/Auth0),
+> not just the app and the database. Use subgraphs to group related
+> components.
 
 ---
 
 ## 3. Directory Structure
 
 Annotated tree with inline # comments explaining every significant
-directory and key files. This is the "map" for navigating the codebase.
+directory AND every source file. This is the "map" for navigating
+the codebase.
+
+> ⚠️ **DEPTH REQUIREMENT:** The tree MUST go down to individual source
+> files, not just directories. For every directory that contains source
+> code, list EVERY file in it. This includes:
+> - **C/C++:** Both headers AND implementation files (`.h` + `.cpp`)
+> - **Frontend (Angular/React):** All component files (`.ts` + `.tsx` + `.html` + `.css`)
+> - **Python/Django:** All module files (`models.py`, `views.py`, `serializers.py`)
+> - **Go/Rust/Java:** All source files (`.go`, `.rs`, `.java`)
+> - Configuration and test files alongside their source files
+>
+> A tree that only shows directories and a few selected files is
+> INCOMPLETE. If a directory has 5 files, list all 5.
+>
+> Example of CORRECT depth (C++):
+> ```text
+> common/streamutils/
+> ├── include/
+> │   └── StreamService.h      # StreamResult, ImageResult structs + StreamService class
+> ├── src/
+> │   └── StreamService.cpp    # Pipeline management, teardown, pad-added callbacks
+> └── CMakeLists.txt           # Links gstreamer-1.0, gstreamer-app-1.0
+> ```
+>
+> Example for Angular:
+> ```text
+> features/dashboard/
+> ├── dashboard.component.ts    # Main dashboard controller, tab switching
+> ├── dashboard.component.html  # Template with chart containers
+> ├── dashboard.component.css   # Dashboard-specific styles
+> ├── dashboard.module.ts       # Module declaration, imports PrimeNG
+> └── dashboard-routing.module.ts # Child routes for dashboard tabs
+> ```
 
 ---
 
@@ -279,21 +378,46 @@ For EACH component, in dependency order (dependencies first):
 
 ### 4.N [Component Name]
 
-- Purpose
-- Public API surface (table: function/method, params, return, description)
-- Internal architecture (key classes, patterns used)
-- Dependencies on other components
-- External library dependencies
+- Purpose (1-2 sentences)
+- **Public API surface** — MUST be a table, not prose:
+
+| Method / Function | Params | Returns | Description |
+|-------------------|--------|---------|-------------|
+| `methodName` | `(arg1: type, arg2: type)` | `ReturnType` | What it does |
+
+- **Internal architecture** — key classes, patterns, important private methods
+- **Dependencies** on other components
+- **External library dependencies**
+
+> ⚠️ **NO PROSE-ONLY SECTIONS.** Every component that has methods MUST
+> include a method-level table. A section that says "ServerService: The
+> central hub for all backend communication" without listing its methods
+> is INCOMPLETE.
+>
+> For UI frameworks (Angular/React/Vue), list EVERY public method in services and hooks.
+> For backend code (C++, Python, Go), list EVERY public method or exported function.
+> Do NOT use prose when a table can show the exact API.
 
 ---
 
-## 5. Data Model
+## 5. Data Model & Storage
 
+### 5.1 Database Schema
 - Database / storage engine
 - Connection / credential management
 - Schema tables with columns, types, constraints, indexes
 - For ORMs: model class locations and relationships
-- For APIs: request/response schemas
+
+> ⚠️ **MANDATORY ERD:** If using a relational database, you MUST 
+> include a Mermaid `erDiagram` showing tables and relationships.
+
+### 5.2 Caching Strategy
+- What data is cached (Redis/Memcached vs CDN vs LocalStorage)
+- Cache invalidation triggers and TTLs
+
+### 5.3 Migrations & Seeding
+- How schema changes are managed (Flyway, Alembic, Prisma)
+- Development seeding strategy
 
 ---
 
@@ -340,9 +464,14 @@ Include coding conventions, naming patterns, architectural patterns
 
 ---
 
-## 11. External Dependencies
+## 11. External Integrations
 
+### 11.1 Library Dependencies (NPM/Pip/Maven/etc)
 Table: name, version, acquisition method, which component uses it.
+
+### 11.2 External 3rd-Party Services
+Table of external APIs the app talks to (e.g., Stripe, Twilio, SendGrid, Auth0).
+| Service | Purpose | Auth Method | Which component calls it |
 
 ---
 
@@ -371,25 +500,39 @@ Context, etc.) with store structure and reducer/action inventory.
 
 ---
 
-## 13. Runtime Flows
+## 13. Real-Time & Event-Driven Flows
 
-Mermaid sequenceDiagrams for critical user-facing flows:
-- Authentication flow
-- Main business operation
-- Error / retry flows
-- Data pipeline flows
+For event-driven architectures and real-time sockets:
+- Topic/Queue inventory (Kafka, RabbitMQ, SQS, Redis Pub/Sub)
+- Event schema/payload descriptions
+- Producer/Consumer matrix (which component publishes what, who listens)
+- WebSocket / Server-Sent Events (SSE) connection hubs and message types
 
 ---
 
 ## 14. API Reference
 
-For web APIs:
-- Endpoint table (method, path, auth, request, response)
-- Error codes
-- Rate limiting
-- Versioning strategy
+Explicitly separate the APIs into categories:
 
-For libraries:
+### 14.1 External (Public-Facing) APIs
+- REST/GraphQL endpoints exposed to frontends or 3rd parties
+- Endpoint table (method, path, auth, request, response schemas)
+- Rate limiting and versioning strategy
+
+### 14.2 Internal (Microservice-to-Microservice) APIs
+- Internal gRPC, REST, or RPC calls
+- Service mesh routing if applicable
+
+### 14.3 Incoming Webhooks
+- Endpoints designed to receive data from 3rd parties (e.g., Stripe webhooks)
+- Signature validation / security mechanism
+
+## 15. Cross-Cutting Concerns
+
+Document shared infrastructure code that affects multiple components:
+- Middleware / Interceptors / Guards (authentication, logging, tracing)
+- Logging formatters (JSON structure, correlation IDs)
+- Global exception filters mapping to HTTP codes
 - Public function/class reference
 - Usage examples
 
@@ -472,7 +615,16 @@ Table of all API endpoints with their security characteristics:
 
 ---
 
-## 20. Code Index
+## 20. Monitoring & Observability
+
+- Metrics endpoints (`/metrics`, `/healthz`)
+- Tracing integration (Datadog, OpenTelemetry, Jaeger)
+- APM setup and key tags injected
+- Alerting rules (if defined in code, e.g., Prometheus `AlertManager` rules)
+
+---
+
+## 21. Code Index
 
 Complete per-file inventory of every class, function, and method in the
 codebase. This is the "search index" that lets any AI agent jump
@@ -490,15 +642,43 @@ Group files by component/module. For each file:
 | `freeFunction` | function | 90-110 | What it does |
 
 Rules for the Code Index:
-1. **Every source file** must appear (skip generated, vendor, build)
-2. **Every public symbol** must be listed (private/internal are optional
-   but recommended for key files)
+1. **Every source file** must appear (skip generated, vendor, build, node_modules)
+2. **Every public symbol** must be listed — private/internal are optional
+   but recommended for key files
 3. **Line ranges** must be accurate (from view_file_outline)
 4. **Descriptions** should be one line — enough for an agent to decide
    whether to read the full function
 5. **Group by component** — mirrors the directory/module structure
 6. For large projects, this section can be split into a separate
    `code_index.md` file linked from the architecture doc
+
+> ⚠️ **ANTI-SHORTCUT RULES:**
+> - Do NOT reduce the Code Index to a bullet list of file names.
+>   Every file MUST have a symbol table with Type, Line, Description columns.
+> - Do NOT write "Core API and state management" as the only entry for a
+>   service file. List EVERY method in that service.
+> - Do NOT skip files because they seem "obvious" from the directory tree.
+>   The Code Index is the EXHAUSTIVE function-level map.
+>
+> A Code Index entry like this is WRONG:
+> ```
+> ### Services
+> - `server.service.ts`: Core API and state management.
+> - `auth.service.ts`: Authentication and user profiles.
+> ```
+>
+> The CORRECT format is:
+> ```
+> ### Services
+> #### `src/app/Services/server.service.ts`
+> | Symbol | Type | Line | Description |
+> |--------|------|------|-------------|
+> | `ServerService` | class | 15-450 | Central API + state management service |
+> | `ServerService.getViolations` | method | 45-62 | Fetch paginated violations for camera |
+> | `ServerService.updateROI` | method | 64-85 | Update region of interest config |
+> | `ServerService.getDashboardStats` | method | 87-110 | Aggregate dashboard metrics |
+> | `violationSubject$` | property | 20 | BehaviorSubject for real-time violation updates |
+> ```
 ```
 
 ---
@@ -507,9 +687,13 @@ Rules for the Code Index:
 
 Before delivering, verify:
 
+- [ ] **MANDATORY**: A Table of Contents is present immediately after the purpose block
 - [ ] Every component mentioned actually exists in the codebase
 - [ ] All API signatures match the actual source code
 - [ ] Data models match actual schema / migration files
+- [ ] **MANDATORY**: If relational DB is used, an ERD is included
+- [ ] **MANDATORY**: External APIs (Stripe, etc.) are distinct from npm/pip packages
+- [ ] **MANDATORY**: Caching layers and message brokers are documented if present
 - [ ] Build commands are accurate (run them if possible)
 - [ ] Dependency versions match manifest files
 - [ ] File paths exist and are correct
@@ -529,3 +713,20 @@ Before delivering, verify:
 6. **No opinions** — document what IS, not what should be
 7. **Dependency order** — document dependencies before dependents
 8. **Quote Mermaid labels** — `id["Label (info)"]` not `id[Label (info)]`
+
+## Depth Enforcement — Common Failure Modes
+
+The following are the most common ways this skill produces shallow output.
+**Actively guard against each one:**
+
+| Failure Mode | What Goes Wrong | How to Fix |
+|-------------|-----------------|------------|
+| **Shallow directory tree** | Only directories shown, not files | Use `find_by_name` with extensions to list EVERY source file |
+| **Prose-only components** | "ServerService handles all API calls" | Add method table: method, params, returns, description |
+| **Bullet-list Code Index** | Just file names with one-line descriptions | Must be symbol tables per file with Type, Line, Description |
+| **Missing implementation files** | Only headers or main files shown | Tree must list all types (`.cpp`, `.py`, `.html`, `.css`) |
+| **Skipped sections** | 10+ sections omitted as "not applicable" | Only omit if genuinely N/A; most projects have 12+ applicable sections |
+| **One-liner feature modules** | "Dashboard: displays metrics" | List every component, every route, every service used |
+| **Missing vendored deps** | nlohmann/json, httplib not listed | Grep for non-system includes/imports |
+| **No method counts** | Component listed but methods not enumerated | Use `view_file_outline` on EVERY source file |
+| **Config keys incomplete** | Only 2-3 config keys listed | Read the full config file/schema and list every key |
